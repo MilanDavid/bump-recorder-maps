@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bump Recorder — Community Road Quality</title>
+<link href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css" rel="stylesheet">
+<style>
+  :root { --bg:#0b0f14; --card:#141b23; --fg:#e7edf3; --sub:#8aa0b3; --line:#22303c; --accent:#22c55e; }
+  @media (prefers-color-scheme: light){ :root{ --bg:#f6f8fa; --card:#fff; --fg:#0b0f14; --sub:#5b6b78; --line:#e2e8ef; } }
+  *{box-sizing:border-box} body{margin:0;font:15px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--fg)}
+  .wrap{max-width:1000px;margin:0 auto;padding:20px}
+  h1{font-size:22px;margin:0} .sub{color:var(--sub);margin:2px 0 18px}
+  .strip{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .kpi{flex:1;min-width:120px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;text-align:center}
+  .kpi .n{font-size:24px;font-weight:800} .kpi .l{color:var(--sub);font-size:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+  .label{color:var(--sub);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  #map{height:380px;border-radius:12px;overflow:hidden}
+  input[type=range]{width:100%}
+  .range{display:flex;gap:12px;align-items:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Road Quality, Crowdsourced</h1>
+  <div class="sub">Every drive measures the roughness of a road. Here's what the community has mapped. <span id="updated"></span></div>
+
+  <div class="label">All time</div>
+  <div class="strip" id="totals"></div>
+
+  <div class="card">
+    <div class="range">
+      <div class="label">From <b id="fromLbl"></b></div>
+      <input id="from" type="range" min="0" value="0">
+      <div class="label">to <b id="toLbl"></b></div>
+      <input id="to" type="range" min="0" value="0">
+    </div>
+    <div class="strip" id="window" style="margin-top:12px"></div>
+    <svg id="spark" viewBox="0 0 600 150" style="width:100%;height:150px"></svg>
+  </div>
+
+  <div class="card"><div class="label" style="margin-bottom:8px">Coverage in the selected window</div><div id="map"></div></div>
+</div>
+
+<script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
+<script type="module">
+import { sumWindow, cumulativeSeries, sparkPath, fmt, monthsOf } from './stats.js';
+import { initMap, setWindow } from './map.js';
+
+// Public config (same public values the app ships; anon key + URL are safe).
+const SB = 'https://lnrdlolvxnarmrsxyrry.supabase.co';
+const ANON = 'sb_publishable__h9370XSWgSEFfyKHLccpA_RqTXWKPt';
+const rest = (t) => fetch(`${SB}/rest/v1/${t}`, { headers: { apikey: ANON } }).then(r => r.json());
+
+// Degrade gracefully: if either anon fetch rejects (offline) or returns a
+// non-array error body, fall back to empty data so the page still renders.
+const arr = (v) => Array.isArray(v) ? v : [];
+let monthlyRaw = [], totalsArr = [];
+try {
+  const [m, t] = await Promise.all([
+    rest('dashboard_monthly?select=*&order=month.asc'),
+    rest('dashboard_totals?select=*'),
+  ]);
+  monthlyRaw = arr(m); totalsArr = arr(t);
+} catch { /* offline / fetch failed: render fallback below */ }
+const monthly = monthlyRaw;
+const totals = totalsArr[0] || { roads_km:0, potholes:0, contributors:0, covered_km2:0, updated_at:null };
+const months = monthsOf(monthly);
+
+document.getElementById('updated').textContent =
+  totals.updated_at ? `Updated ${new Date(totals.updated_at).toLocaleDateString()}` : '';
+
+const tile = (n, l) => `<div class="kpi"><div class="n">${n}</div><div class="l">${l}</div></div>`;
+document.getElementById('totals').innerHTML =
+  tile(fmt(Math.round(totals.roads_km)), 'road-km mapped') +
+  tile(fmt(totals.potholes), 'potholes') +
+  tile(fmt(totals.contributors), 'contributors') +
+  tile(fmt(Math.round(totals.covered_km2)), 'km² covered');
+
+const fromEl = document.getElementById('from'), toEl = document.getElementById('to');
+fromEl.max = toEl.max = Math.max(0, months.length - 1);
+toEl.value = months.length - 1;
+
+const map = initMap(document.getElementById('map'), SB, ANON);
+
+function render() {
+  let i = +fromEl.value, j = +toEl.value; if (i > j) [i, j] = [j, i];
+  const from = months[i], to = months[j];
+  document.getElementById('fromLbl').textContent = from?.slice(0, 7) ?? '';
+  document.getElementById('toLbl').textContent = to?.slice(0, 7) ?? '';
+  const w = sumWindow(monthly, from, to);
+  document.getElementById('window').innerHTML =
+    tile(fmt(Math.round(w.km_added)), 'new road-km') +
+    tile(fmt(w.potholes_added), 'new potholes') +
+    tile(fmt(w.new_contributors), 'new contributors') +
+    tile(fmt(Math.round(w.new_km2)), 'km² newly covered');
+  document.getElementById('spark').innerHTML =
+    `<path d="${sparkPath(cumulativeSeries(monthly.filter(m=>m.month<=to), 'km_added'), 600, 150)}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>`;
+  setWindow(map, from, to);
+}
+fromEl.oninput = toEl.oninput = render;
+render();
+</script>
+</body>
+</html>
