@@ -39,13 +39,21 @@
     <svg id="spark" viewBox="0 0 600 150" style="width:100%;height:150px"></svg>
   </div>
 
-  <div class="card"><div class="label" style="margin-bottom:8px">Coverage in the selected window</div><div id="map"></div></div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px">
+      <div class="label">Coverage in the selected window</div>
+      <label class="label" style="display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:none;letter-spacing:0">
+        <input id="holes" type="checkbox" checked> Show potholes
+      </label>
+    </div>
+    <div id="map"></div>
+  </div>
 </div>
 
 <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
 <script type="module">
 import { sumWindow, cumulativeSeries, sparkPath, fmt, monthsOf } from './stats.js';
-import { initMap, setWindow } from './map.js';
+import { initMap, setWindow, setPotholesVisible } from './map.js';
 
 // Public config (same public values the app ships; anon key + URL are safe).
 const SB = 'https://lnrdlolvxnarmrsxyrry.supabase.co';
@@ -82,6 +90,8 @@ fromEl.max = toEl.max = Math.max(0, months.length - 1);
 toEl.value = months.length - 1;
 
 const map = initMap(document.getElementById('map'), SB, ANON);
+const holesEl = document.getElementById('holes');
+holesEl.onchange = () => setPotholesVisible(map, holesEl.checked);
 
 function render() {
   let i = +fromEl.value, j = +toEl.value; if (i > j) [i, j] = [j, i];

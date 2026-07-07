@@ -30,10 +30,18 @@ export function initMap(el, sbUrl, anon) {
     map.addLayer({ id:'holes', type:'circle', source:'holes',
       paint:{ 'circle-radius':4, 'circle-color':'#f97316', 'circle-opacity':0.9 } });
     map._ready = true;
+    if (map._holesVisible === false) map.setLayoutProperty('holes', 'visibility', 'none');
     if (map._pending) setWindow(map, ...map._pending);
   });
   map.on('moveend', () => map._win && setWindow(map, ...map._win));
   return map;
+}
+
+// Show/hide the pothole layer. Records intent even before the style loads so an
+// initial toggle applies once the 'holes' layer exists (see the load handler).
+export function setPotholesVisible(map, visible) {
+  map._holesVisible = visible;
+  if (map._ready) map.setLayoutProperty('holes', 'visibility', visible ? 'visible' : 'none');
 }
 
 export async function setWindow(map, from, to) {
