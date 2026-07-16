@@ -1,115 +1,223 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Bump Recorder — Community Road Quality</title>
 <link href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css" rel="stylesheet">
 <style>
-  :root { --bg:#0b0f14; --card:#141b23; --fg:#e7edf3; --sub:#8aa0b3; --line:#22303c; --accent:#22c55e; }
-  @media (prefers-color-scheme: light){ :root{ --bg:#f6f8fa; --card:#fff; --fg:#0b0f14; --sub:#5b6b78; --line:#e2e8ef; } }
-  *{box-sizing:border-box} body{margin:0;font:15px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--fg)}
-  .wrap{max-width:1000px;margin:0 auto;padding:20px}
-  h1{font-size:22px;margin:0} .sub{color:var(--sub);margin:2px 0 18px}
-  .strip{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
-  .kpi{flex:1;min-width:120px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;text-align:center}
-  .kpi .n{font-size:24px;font-weight:800} .kpi .l{color:var(--sub);font-size:12px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px}
-  .label{color:var(--sub);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
-  #map{height:380px;border-radius:12px;overflow:hidden}
-  input[type=range]{width:100%}
-  .range{display:flex;gap:12px;align-items:center}
+  :root { --navy:#0B1524; --card:#14202f; --line:#26374a; --fg:#e7edf3; --sub:#9fb0c2; --accent:#22c55e; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; font:14px/1.45 system-ui, sans-serif; color:var(--fg); background:var(--navy); }
+  #map { position:fixed; inset:0; }
+
+  /* Floating round buttons */
+  .fab { position:fixed; z-index:5; width:44px; height:44px; border-radius:12px; border:1px solid var(--line);
+         background:rgba(20,32,47,.92); color:var(--fg); display:grid; place-items:center; cursor:pointer;
+         box-shadow:0 2px 10px rgba(0,0,0,.4); }
+  .fab:hover { background:rgba(30,44,62,.96); }
+  .fab svg { width:22px; height:22px; }
+  #menuBtn { top:12px; left:12px; }
+  #funnelBtn { top:12px; right:12px; }
+  #funnelBtn.on { border-color:var(--accent); color:var(--accent); }
+  .hidden { display:none !important; }
+
+  /* All-time totals chip */
+  #totals { position:fixed; z-index:4; top:14px; left:50%; transform:translateX(-50%); max-width:calc(100% - 120px);
+            display:flex; gap:14px; padding:8px 14px; border-radius:999px; border:1px solid var(--line);
+            background:rgba(20,32,47,.92); box-shadow:0 2px 10px rgba(0,0,0,.4); overflow-x:auto; white-space:nowrap; }
+  #totals .t { text-align:center; }
+  #totals .n { font-weight:800; font-size:15px; }
+  #totals .l { color:var(--sub); font-size:10px; text-transform:uppercase; letter-spacing:.03em; }
+
+  /* Left drawer */
+  #scrim { position:fixed; inset:0; z-index:8; background:rgba(0,0,0,.45); opacity:0; pointer-events:none;
+           transition:opacity .2s; }
+  #scrim.open { opacity:1; pointer-events:auto; }
+  #drawer { position:fixed; z-index:9; top:0; left:0; bottom:0; width:300px; max-width:85vw; background:var(--navy);
+            border-right:1px solid var(--line); transform:translateX(-100%); transition:transform .22s;
+            display:flex; flex-direction:column; padding:16px; gap:14px; overflow-y:auto; }
+  #drawer.open { transform:none; }
+  #drawer h1 { font-size:18px; margin:4px 0 0; }
+  #drawer .muted { color:var(--sub); font-size:12px; }
+  #drawer .sep { height:1px; background:var(--line); margin:4px 0; }
+  .btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:10px; border-radius:10px;
+         border:1px solid var(--line); background:var(--card); color:var(--fg); font-size:14px; cursor:pointer; }
+  .btn:hover { background:#1b2b3d; }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:#062812; font-weight:700; }
+  input[type=email], input[type=password] { width:100%; padding:9px 10px; border-radius:10px; border:1px solid var(--line);
+         background:var(--card); color:var(--fg); }
+  .row { display:flex; align-items:center; gap:8px; }
+  label.toggle { display:flex; align-items:center; gap:8px; cursor:pointer; color:var(--sub); }
+  a { color:#7fb3ff; }
+
+  /* Filter overlay */
+  #filter { position:fixed; z-index:6; top:64px; right:12px; width:320px; max-width:calc(100% - 24px);
+            background:rgba(20,32,47,.97); border:1px solid var(--line); border-radius:14px; padding:14px;
+            box-shadow:0 6px 24px rgba(0,0,0,.5); }
+  #filter .head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  #filter .head b { font-size:13px; }
+  #filter .x { cursor:pointer; color:var(--sub); border:none; background:none; font-size:18px; }
+  #filter .rangeRow { display:flex; align-items:center; gap:8px; margin:6px 0; }
+  #filter .rangeRow .lab { color:var(--sub); font-size:11px; min-width:64px; }
+  #filter input[type=range] { flex:1; }
+  #filter .kpis { display:flex; gap:8px; margin-top:10px; }
+  #filter .k { flex:1; text-align:center; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:8px 4px; }
+  #filter .k .n { font-weight:800; font-size:15px; }
+  #filter .k .l { color:var(--sub); font-size:9px; text-transform:uppercase; }
+  #filter .allTime { margin-top:10px; text-align:center; }
+  #filter .allTime a { cursor:pointer; font-size:12px; }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>Road Quality, Crowdsourced</h1>
-  <div class="sub">Every drive measures the roughness of a road. Here's what the community has mapped. <span id="updated"></span></div>
+<div id="map"></div>
 
-  <div class="label">All time</div>
-  <div class="strip" id="totals"></div>
+<button id="menuBtn" class="fab" aria-label="Menu">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+</button>
 
-  <div class="card">
-    <div class="range">
-      <div class="label">From <b id="fromLbl"></b></div>
-      <input id="from" type="range" min="0" value="0">
-      <div class="label">to <b id="toLbl"></b></div>
-      <input id="to" type="range" min="0" value="0">
-    </div>
-    <div class="strip" id="window" style="margin-top:12px"></div>
-    <svg id="spark" viewBox="0 0 600 150" style="width:100%;height:150px"></svg>
-  </div>
+<div id="totals"></div>
 
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px">
-      <div class="label">Coverage in the selected window</div>
-      <label class="label" style="display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:none;letter-spacing:0">
-        <input id="holes" type="checkbox" checked> Show potholes
-      </label>
-    </div>
-    <div id="map"></div>
-  </div>
+<button id="funnelBtn" class="fab hidden" aria-label="Filter by time">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4h18l-7 8v6l-4 2v-8z"/></svg>
+</button>
+
+<div id="filter" class="hidden">
+  <div class="head"><b>Time filter</b><button class="x" id="filterClose" aria-label="Close">×</button></div>
+  <div class="rangeRow"><span class="lab">From <b id="fromLbl"></b></span><input id="from" type="range" min="0" value="0"></div>
+  <div class="rangeRow"><span class="lab">To <b id="toLbl"></b></span><input id="to" type="range" min="0" value="0"></div>
+  <div class="kpis" id="window"></div>
+  <div class="allTime"><a id="allTime">↺ Show all time</a></div>
 </div>
 
+<div id="scrim"></div>
+<aside id="drawer">
+  <h1>Bump Recorder</h1>
+  <div class="muted">Community road quality, crowdsourced.</div>
+  <div class="sep"></div>
+  <div id="account"></div>
+  <div class="sep"></div>
+  <label class="toggle"><input id="holesToggle" type="checkbox" checked> Show potholes</label>
+  <div style="flex:1"></div>
+  <div class="muted"><a href="../privacy.html">Privacy</a> · <a href="../terms.html">Terms</a></div>
+</aside>
+
 <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/pmtiles@3/dist/pmtiles.js"></script>
 <script type="module">
-import { sumWindow, cumulativeSeries, sparkPath, fmt, monthsOf } from './stats.js';
-import { initMap, setWindow, setPotholesVisible } from './map.js';
+import { initMap, applyWindow, clearWindow, setPotholesVisible } from './map.js';
+import { initAuth, currentSession, onAuth, signInGoogle, signInApple, signInEmail, signOut } from './auth.js';
+import { sumWindow, monthsOf, fmt } from './stats.js';
 
 // Public config (same public values the app ships; anon key + URL are safe).
 const SB = 'https://lnrdlolvxnarmrsxyrry.supabase.co';
 const ANON = 'sb_publishable__h9370XSWgSEFfyKHLccpA_RqTXWKPt';
 const rest = (t) => fetch(`${SB}/rest/v1/${t}`, { headers: { apikey: ANON } }).then(r => r.json());
-
-// Degrade gracefully: if either anon fetch rejects (offline) or returns a
-// non-array error body, fall back to empty data so the page still renders.
 const arr = (v) => Array.isArray(v) ? v : [];
-let monthlyRaw = [], totalsArr = [];
+
+// --- data: all-time totals (chip) + monthly buckets (filter numbers) ---------
+let monthly = [], months = [];
+let totals = { roads_km:0, potholes:0, contributors:0, covered_km2:0 };
 try {
   const [m, t] = await Promise.all([
     rest('dashboard_monthly?select=*&order=month.asc'),
     rest('dashboard_totals?select=*'),
   ]);
-  monthlyRaw = arr(m); totalsArr = arr(t);
-} catch { /* offline / fetch failed: render fallback below */ }
-const monthly = monthlyRaw;
-const totals = totalsArr[0] || { roads_km:0, potholes:0, contributors:0, covered_km2:0, updated_at:null };
-const months = monthsOf(monthly);
+  monthly = arr(m); months = monthsOf(monthly);
+  totals = arr(t)[0] || totals;
+} catch { /* offline: render empty chip, map still works */ }
 
-document.getElementById('updated').textContent =
-  totals.updated_at ? `Updated ${new Date(totals.updated_at).toLocaleDateString()}` : '';
-
-const tile = (n, l) => `<div class="kpi"><div class="n">${n}</div><div class="l">${l}</div></div>`;
+const tile = (n, l) => `<div class="t"><div class="n">${n}</div><div class="l">${l}</div></div>`;
 document.getElementById('totals').innerHTML =
-  tile(fmt(Math.round(totals.roads_km)), 'road-km mapped') +
+  tile(fmt(Math.round(totals.roads_km)), 'road-km') +
   tile(fmt(totals.potholes), 'potholes') +
   tile(fmt(totals.contributors), 'contributors') +
-  tile(fmt(Math.round(totals.covered_km2)), 'km² covered');
+  tile(fmt(Math.round(totals.covered_km2)), 'km²');
 
+// --- map (created once; overlays never re-render it) -------------------------
+const map = await initMap(document.getElementById('map'), SB, ANON);
+document.getElementById('holesToggle').onchange = (e) => setPotholesVisible(map, e.target.checked);
+
+// --- drawer (pure CSS toggle, no map interaction) ----------------------------
+const drawer = document.getElementById('drawer'), scrim = document.getElementById('scrim');
+const openDrawer = (open) => { drawer.classList.toggle('open', open); scrim.classList.toggle('open', open); };
+document.getElementById('menuBtn').onclick = () => openDrawer(!drawer.classList.contains('open'));
+scrim.onclick = () => openDrawer(false);
+
+// --- funnel + filter (visibility is pure CSS; only slider VALUE hits the map) -
+const funnelBtn = document.getElementById('funnelBtn');
+const filter = document.getElementById('filter');
 const fromEl = document.getElementById('from'), toEl = document.getElementById('to');
 fromEl.max = toEl.max = Math.max(0, months.length - 1);
-toEl.value = months.length - 1;
+toEl.value = Math.max(0, months.length - 1);
 
-const map = initMap(document.getElementById('map'), SB, ANON);
-const holesEl = document.getElementById('holes');
-holesEl.onchange = () => setPotholesVisible(map, holesEl.checked);
+const showFilter = (open) => { filter.classList.toggle('hidden', !open); funnelBtn.classList.toggle('on', open); };
+funnelBtn.onclick = () => showFilter(filter.classList.contains('hidden'));
+document.getElementById('filterClose').onclick = () => showFilter(false);
 
-function render() {
+// Update the filter's labels + window KPIs. Pure/local — NEVER touches the map.
+function updateWindowUI() {
   let i = +fromEl.value, j = +toEl.value; if (i > j) [i, j] = [j, i];
   const from = months[i], to = months[j];
   document.getElementById('fromLbl').textContent = from?.slice(0, 7) ?? '';
   document.getElementById('toLbl').textContent = to?.slice(0, 7) ?? '';
   const w = sumWindow(monthly, from, to);
   document.getElementById('window').innerHTML =
-    tile(fmt(Math.round(w.km_added)), 'new road-km') +
-    tile(fmt(w.potholes_added), 'new potholes') +
-    tile(fmt(w.new_contributors), 'new contributors') +
-    tile(fmt(Math.round(w.new_km2)), 'km² newly covered');
-  document.getElementById('spark').innerHTML =
-    `<path d="${sparkPath(cumulativeSeries(monthly.filter(m=>m.month<=to), 'km_added'), 600, 150)}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>`;
-  setWindow(map, from, to);
+    `<div class="k"><div class="n">${fmt(Math.round(w.km_added))}</div><div class="l">road-km</div></div>` +
+    `<div class="k"><div class="n">${fmt(w.potholes_added)}</div><div class="l">potholes</div></div>` +
+    `<div class="k"><div class="n">${fmt(w.new_contributors)}</div><div class="l">people</div></div>`;
+  return { from, to };
 }
-fromEl.oninput = toEl.oninput = render;
-render();
+// Scrubbing a slider is the ONLY thing that refetches the map (into window mode).
+fromEl.oninput = toEl.oninput = () => {
+  const { from, to } = updateWindowUI();
+  if (from && to) applyWindow(map, from, to);
+};
+document.getElementById('allTime').onclick = () => {
+  fromEl.value = 0; toEl.value = months.length - 1;
+  updateWindowUI();             // reset the numbers
+  clearWindow(map);             // revert map to the all-time (mobile) layer
+};
+
+// --- auth: drives ONLY the drawer account UI + funnel visibility --------------
+initAuth(SB, ANON);
+const account = document.getElementById('account');
+
+function renderAccount(session) {
+  const loggedIn = !!session;
+  funnelBtn.classList.toggle('hidden', !loggedIn);
+  if (!loggedIn) { showFilter(false); clearWindow(map); }
+  if (loggedIn) {
+    const email = session.user?.email ?? 'Signed in';
+    account.innerHTML = `<div class="muted">Signed in as</div><div style="font-weight:700;overflow-wrap:anywhere">${email}</div>`;
+    const out = document.createElement('button'); out.className = 'btn'; out.textContent = 'Sign out';
+    out.onclick = () => signOut();
+    account.append(document.createElement('div'), out);
+  } else {
+    account.innerHTML = `<div class="muted">Sign in to filter the map by time.</div>`;
+    const g = mkBtn('Continue with Google', () => signInGoogle(), true);
+    const a = mkBtn('Continue with Apple', () => signInApple(), true);
+    const email = Object.assign(document.createElement('input'), { type:'email', placeholder:'Email' });
+    const pw = Object.assign(document.createElement('input'), { type:'password', placeholder:'Password' });
+    const err = Object.assign(document.createElement('div'), { className:'muted' });
+    const sub = mkBtn('Sign in with email', async () => {
+      err.textContent = '';
+      const msg = await signInEmail(email.value.trim(), pw.value);
+      if (msg) err.textContent = msg;
+    });
+    account.append(g, a, hr(), email, pw, sub, err);
+  }
+}
+function mkBtn(text, onClick, primary) {
+  const b = document.createElement('button');
+  b.className = 'btn' + (primary ? ' primary' : ''); b.textContent = text; b.onclick = onClick;
+  return b;
+}
+const hr = () => Object.assign(document.createElement('div'), { className:'sep' });
+
+onAuth((session) => renderAccount(session));
+renderAccount(await currentSession());
+updateWindowUI(); // seed the filter labels/numbers; map stays all-time until a scrub
 </script>
 </body>
 </html>

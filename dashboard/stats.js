@@ -15,27 +15,6 @@ export function sumWindow(monthly, from, to) {
   return acc;
 }
 
-// Running total of one additive field, in month order.
-export function cumulativeSeries(monthly, field) {
-  const sorted = [...monthly].sort((a, b) => a.month.localeCompare(b.month));
-  let run = 0;
-  return sorted.map((m) => ({ month: m.month, y: (run += m[field]) }));
-}
-
-// SVG polyline path for a series of {y} points across [w,h] (auto-scaled).
-export function sparkPath(points, w, h, pad = 6) {
-  if (!points.length) return '';
-  const max = Math.max(1, ...points.map((p) => p.y));
-  const dx = points.length > 1 ? (w - 2 * pad) / (points.length - 1) : 0;
-  return points
-    .map((p, i) => {
-      const x = pad + i * dx;
-      const y = h - pad - (p.y / max) * (h - 2 * pad);
-      return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(' ');
-}
-
 // Thousands separators; keep one decimal for non-integers.
 export function fmt(n) {
   return Number.isInteger(n)
