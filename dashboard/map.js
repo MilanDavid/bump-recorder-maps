@@ -11,7 +11,7 @@
 // GitHub release asset is CORS-blocked and 597 MB won't fit on Pages, so this
 // must point at e.g. a Cloudflare R2 public URL. Set this and the exact
 // mobile basemap appears; leave it blank to fall back to a hosted dark style.
-const PMTILES_URL = ''; // e.g. 'https://<bucket>.r2.dev/serbia.pmtiles'
+const PMTILES_URL = 'https://bump-basemap.miland-sm.workers.dev/'; // Cloudflare Worker: CORS proxy over the serbia-z15 GitHub release asset
 const FALLBACK_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
 // ---- mobile-identical styling ----------------------------------------------
