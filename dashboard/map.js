@@ -146,8 +146,10 @@ function callRpc(name, body) {
   }).then((r) => r.json());
 }
 
+let _seq = 0;
 async function loadData(map) {
   if (!map._ready) return;
+  const seq = ++_seq; // this load's token — see the stale-response guard below
   const b = map.getBounds();
   const bbox = {
     min_lng: b.getWest(), min_lat: b.getSouth(),
@@ -164,6 +166,10 @@ async function loadData(map) {
           { ...bbox, from_month: map._from, to_month: map._to })
       : roadData;
   } catch { return; } // map stays; degrade gracefully
+  // A newer load started while we awaited (e.g. the slow zoom-8 all-Serbia
+  // query resolving after a fast zoomed-in one) — dropping it here stops a
+  // stale, capped, arterials-only response from overwriting the current view.
+  if (seq !== _seq) return;
   map.getSource('roads')?.setData({
     type: 'FeatureCollection',
     features: (roadData.roads || []).map((r) => ({
