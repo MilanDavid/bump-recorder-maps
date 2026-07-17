@@ -66,7 +66,7 @@ export async function initMap(el, sbUrl, anon) {
     }),
   );
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
-  map._mode = 'all'; // 'all' -> shared_layer | 'window' -> shared_layer_months
+  map._mode = 'all'; // roads always from shared_layer; 'window' also fetches shared_layer_months for potholes
   map.on('load', () => {
     map.addSource('roads', { type: 'geojson', data: empty() });
     map.addLayer({
@@ -138,6 +138,14 @@ function scheduleLoad(map) {
   _timer = setTimeout(() => loadData(map), 200);
 }
 
+function callRpc(name, body) {
+  return fetch(`${cfg.sbUrl}/rest/v1/rpc/${name}`, {
+    method: 'POST',
+    headers: { apikey: cfg.anon, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }).then((r) => r.json());
+}
+
 async function loadData(map) {
   if (!map._ready) return;
   const b = map.getBounds();
@@ -146,21 +154,19 @@ async function loadData(map) {
     max_lng: b.getEast(), max_lat: b.getNorth(),
   };
   const isWindow = map._mode === 'window' && map._from && map._to;
-  const rpc = isWindow ? 'shared_layer_months' : 'shared_layer';
-  const body = isWindow
-    ? { ...bbox, from_month: map._from, to_month: map._to }
-    : bbox;
-  let data;
+  let roadData, holeData;
   try {
-    data = await fetch(`${cfg.sbUrl}/rest/v1/rpc/${rpc}`, {
-      method: 'POST',
-      headers: { apikey: cfg.anon, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    }).then((r) => r.json());
+    // Roads ALWAYS come from the all-time layer (mobile-identical, matches the
+    // app). Only potholes respond to the month window.
+    roadData = await callRpc('shared_layer', bbox);
+    holeData = isWindow
+      ? await callRpc('shared_layer_months',
+          { ...bbox, from_month: map._from, to_month: map._to })
+      : roadData;
   } catch { return; } // map stays; degrade gracefully
   map.getSource('roads')?.setData({
     type: 'FeatureCollection',
-    features: (data.roads || []).map((r) => ({
+    features: (roadData.roads || []).map((r) => ({
       type: 'Feature',
       properties: { quality: r.quality },
       geometry: { type: 'LineString', coordinates: decode(r.geometry) },
@@ -168,7 +174,7 @@ async function loadData(map) {
   });
   map.getSource('holes')?.setData({
     type: 'FeatureCollection',
-    features: (data.potholes || []).map((p) => ({
+    features: (holeData.potholes || []).map((p) => ({
       type: 'Feature',
       properties: { reports: p.reports },
       geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
