@@ -15,6 +15,11 @@
 const PMTILES_URL = 'https://bump-basemap.miland-sm.workers.dev/'; // Cloudflare Worker: CORS proxy over the balkans-z15 GitHub release asset
 const FALLBACK_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
+// Extent of the hosted archive (Serbia + BiH + Montenegro) as [[W,S],[E,N]],
+// and the zoom-out floor. The camera is clamped to these — see initMap.
+const BASEMAP_BOUNDS = [[15.6, 41.7], [23.1, 46.3]];
+const BASEMAP_MIN_ZOOM = 6;
+
 // ---- mobile-identical styling ----------------------------------------------
 // Road color mirrors lib/ui/roughness_color.dart with kIriGradient (low 0.3,
 // high 1.2): green #4CAF50 -> yellow #FFEB3B (at 0.75) -> red #F44336.
@@ -58,6 +63,12 @@ export async function initMap(el, sbUrl, anon) {
     style,
     center: [19.61, 44.98], // default view (archive covers Serbia + BiH + Montenegro)
     zoom: 8,
+    // Keep the viewport inside the basemap archive's coverage — there is no map
+    // data outside it, so panning/zooming out past the edge is just black.
+    // Mirrors kBasemapBounds / kBasemapMinZoom in the app's lib/ui/basemap.dart;
+    // keep in sync when the archive's bbox changes.
+    maxBounds: BASEMAP_BOUNDS,
+    minZoom: BASEMAP_MIN_ZOOM,
     attributionControl: false,
   });
   map.addControl(
