@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bump Recorder — Privacy Policy</title>
+<title>Rupometar — Privacy Policy</title>
 <style>
   body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; max-width: 720px;
          margin: 2rem auto; padding: 0 1.25rem; line-height: 1.6; color: #1a2333; }
@@ -13,31 +13,28 @@
 </style>
 </head>
 <body>
-<h1>Bump Recorder — Privacy Policy</h1>
-<p class="meta">Version 6 · Last updated 2026-07-17 · <a href="terms.html">Terms of Use</a></p>
+<h1>Rupometar — Privacy Policy</h1>
+<p class="meta">Version 8 · Last updated 2026-10-11 · <a href="terms.html">Terms of Use</a></p>
 
 <h2>What we collect</h2>
-<p>While recording, the app reads accelerometer/motion data and your GPS location to detect bumps and measure road roughness. This, plus the resulting bump and road-quality data, is stored locally on your device.</p>
-
+<p>While recording, the app reads accelerometer/motion data and your GPS location to detect bumps and measure road roughness. This, plus the resulting bump and road-quality data, is stored locally on your device. If you are signed in to an account, a summary of each drive and your road-quality map are also backed up to your account — see "Account backup" below.</p>
 <h2>On-device by default; community map is opt-in</h2>
-<p>Bump Recorder needs no account to use (accounts are optional — see below). By default your recordings stay on your device and are never sent to us. If you opt in to &ldquo;Contribute my drives&rdquo;, road segments (matched to public roads) and bump reports from your drives upload to our server (Supabase, hosted in the EU) under an anonymous device identity — never your raw GPS trail: everything within 50 m of a drive's start and end points is excluded, and upload timestamps carry only the date. Viewing the community layer downloads aggregated data only. If you have an account, deleting it removes everything you uploaded (see Accounts below). There are no ads and no third-party analytics SDKs.</p>
-
+<p>Rupometar needs no account to use (accounts are optional — see below). Without an account, your recordings stay on your device and are never sent to us unless you opt in to "Contribute my drives". If you opt in to "Contribute my drives", road segments (matched to public roads) and bump reports from your drives upload to our server (Supabase, hosted in the EU) under an anonymous device identity — never your raw GPS trail: everything within 50 m of a drive's start and end points is excluded, and upload timestamps carry only the date. Viewing the community layer downloads aggregated data only. If you have an account, deleting it removes everything you uploaded (see Accounts below). There are no ads and no third-party analytics SDKs.</p>
+<h2>Account backup</h2>
+<p>When you are signed in, the app automatically backs up two things to your account on our server (Supabase, hosted in the EU) so you can get them back after reinstalling or on another device: (1) a summary of each drive — its start and end time, duration, distance, average roughness and bump count; and (2) your personal road-quality map — the road shapes you have driven and the roughness value calculated for each. Your raw GPS trail is never backed up. Unlike community contributions, the backup is not privacy-trimmed: it includes road shapes near where your drives start and end, and exact drive times, because its purpose is to rebuild your own map. It is stored under your account, is readable only by you, and is never mixed into the public community map. Nothing is backed up while you use the app without an account. You can restore, re-upload or delete your backup at any time from Settings, and deleting your account deletes it.</p>
 <h2>Accounts (optional)</h2>
-<p>You can use Bump Recorder with no account. If you sign in with Apple, Google, or email, we store your email address and an account identifier so you can manage your contributions across sessions and devices. Signing in links your (still server-private) road-quality contributions to your account; the public community map stays anonymous and never shows who contributed. You can sign out at any time, or delete your account and its contributions from the Account screen.</p>
-
+<p>You can use Rupometar with no account. If you sign in with Apple, Google, or email, we store your email address and an account identifier so you can manage your contributions across sessions and devices. Signing in links your (still server-private) road-quality contributions to your account and turns on Account backup (above); the public community map stays anonymous and never shows who contributed. You can sign out at any time, or delete your account, its contributions and its backup from the Account screen.</p>
 <h2>Maps &amp; Mapbox</h2>
 <p>The map is streamed from our hosted map data (Protomaps, built from OpenStreetMap data): as you pan, the app fetches the tiles in view — so your viewing area is visible to that host — and caches them on your device for offline reuse. To align (map-match) your recorded drives to actual roads, the app sends your recorded route points to Mapbox over your device's connection; Mapbox processes them under its own privacy policy (<a href="https://www.mapbox.com/legal/privacy">mapbox.com/legal/privacy</a>).</p>
-
+<h2>Road-ahead indicator</h2>
+<p>The optional road-ahead indicator works only from data already on your device (your own earlier drives); it sends nothing anywhere.</p>
 <h2>Permissions</h2>
-<p>Location (&ldquo;Always&rdquo;/&ldquo;While Using&rdquo; — also used for optional background drive detection, which means location may be collected while the app is in the background or closed if you enable that feature) and motion/physical-activity recognition. You can change these in system settings; some features won't work without them.</p>
-
+<p>Location (“Always”/“While Using” — also used for optional background drive detection, which means location may be collected while the app is in the background or closed if you enable that feature) and motion/physical-activity recognition. You can change these in system settings; some features won't work without them.</p>
 <h2>Your control</h2>
-<p>You can stop recording at any time. Your local data lives on your device; deleting the app deletes it. Community contributions are separate: deleting the app does not remove what you already uploaded. If you have an account, deleting it (Account screen) removes your uploaded contributions.</p>
-
+<p>You can stop recording at any time. Your local data lives on your device; deleting the app deletes it — and if you were signed in, you can restore your drive summaries and road-quality map by signing in again. Deleting a drive from the Drives list also deletes it from your backup. Community contributions are separate: deleting the app does not remove what you already uploaded. From Settings you can delete your cloud backup on its own; deleting your account (Account screen) removes your uploaded contributions and your backup.</p>
 <h2>Changes</h2>
 <p>We may update this policy; we'll ask you to accept the new version.</p>
-
 <h2>Contact</h2>
-<p>miland.sm@gmail.com</p>
+<p><a href="mailto:miland.sm@gmail.com">miland.sm@gmail.com</a></p>
 </body>
 </html>
